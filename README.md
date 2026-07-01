@@ -1,6 +1,6 @@
 # Loop Engineering — End-to-End Demo
 
-> **Concept** — [The Batch, Issue 359](https://www.deeplearning.ai/the-batch/issue-359)
+> **Concept**
 > "Loop engineering" is the practice of designing nested feedback loops that let
 > AI agents iterate productively on software, with human oversight at the right
 > granularity.
@@ -112,8 +112,3 @@ loop-engineering/
         ├── developer.py             # Loop 2: review → feedback
         └── external.py              # Loop 3: user feedback → vision
 ```
-
-## Credits
-
-- **Concept:** [The Batch Issue 359](https://www.deeplearning.ai/the-batch/issue-359)
-- **Inspired by:** Boris Cherny (Claude Code), Peter Steinberger (OpenClaw)
