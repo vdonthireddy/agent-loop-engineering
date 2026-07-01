@@ -19,7 +19,7 @@ This document breaks down the **"3. Run"** section of the `README.md` file in th
 1. The CLI reads the `spec.md` file.
 2. It sends the spec to the local Ollama LLM with a strict prompt: "Write this code and output it in code blocks."
 3. The LLM responds with code.
-4. Our robust "Extractor" parses the LLM's response, grabbing `app.py`, `templates/index.html`, and `tests/test_app.py`, and writes them to the `workspace/`.
+4. Our robust "Extractor" parses the LLM's response, grabbing `app.py`, `templates/index.html`, and `tests/test_app.py`, and writes them to the `workspace/`. *(Note: In real-world agentic systems, this extraction step is fully dynamic and capable of parsing arbitrary file paths and directory structures, rather than relying on a hard-coded list of files).*
 5. The system automatically runs `pytest` in the background.
 6. **The Loop:** If tests fail, the system grabs the red error text, sends it *back* to the LLM, and says "Fix this." It repeats this up to 5 times until the tests pass.
 
