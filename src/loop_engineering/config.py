@@ -14,10 +14,13 @@ class Settings:
 
     def __init__(self) -> None:
         # ── Ollama ──────────────────────────────────────────────
-        self.ollama_url: str = os.getenv(
-            "LOOP_ENG_OLLAMA_URL", "http://localhost:11434"
-        )
-        self.model: str = os.getenv("LOOP_ENG_MODEL", "qwen2.5-coder:0.5b")
+        self.ollama_url: str = os.getenv("LOOP_ENG_OLLAMA_URL")
+        if not self.ollama_url:
+            raise ValueError("LOOP_ENG_OLLAMA_URL must be set in the .env file.")
+            
+        self.model: str = os.getenv("LOOP_ENG_MODEL")
+        if not self.model:
+            raise ValueError("LOOP_ENG_MODEL must be set in the .env file.")
 
         # ── Workspace (where the agent writes generated code) ──
         default_workspace = PROJECT_ROOT / "workspace"
