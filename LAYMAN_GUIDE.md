@@ -66,17 +66,17 @@ Now the cake has a raspberry drizzle and the Head Chef loves it. It's time to pu
 
 ```mermaid
 graph TD
-    subgraph Loop 3: The Dining Room (Days)
+    subgraph L3 ["Loop 3: The Dining Room (Days)"]
         direction TB
         Customers[Customers eat and leave comment cards]
         Manager[Manager summarizes feedback]
         
-        subgraph Loop 2: The Head Chef (Hours)
+        subgraph L2 ["Loop 2: The Head Chef (Hours)"]
             direction TB
             Chef[Head Chef tastes the food]
             Recipe[Head Chef updates recipe card]
             
-            subgraph Loop 1: The Sous-Chef (Minutes)
+            subgraph L1 ["Loop 1: The Sous-Chef (Minutes)"]
                 direction TB
                 AI[Sous-Chef bakes]
                 Taste[Sous-Chef tastes it]
