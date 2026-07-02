@@ -2,16 +2,13 @@
 
 A generic, purely data-driven agentic framework built using standard Python and the official `ollama` SDK. 
 
-This project explores a **Universal Actor-Critic Architecture** designed to take arbitrary specifications and turn them into robust, test-driven code.
+This project is a laboratory for **Loop Engineering**—the science of designing, orchestrating, and optimizing generic agentic feedback loops. The goal is to create a pure data-driven framework where complex LLM workflows (loops) can be engineered to solve any problem.
 
-## Architecture Highlights
+## Loop Engineering Focus
 
-- **Zero LangChain/Heavy Frameworks**: Built natively with the `ollama` Python package to keep things blazing fast and completely transparent.
-- **Data-Driven Engine**: All LLM prompts, context injection rules, and parsing logic have been externalized to `config/agents.yaml`.
-- **Universal Actor-Critic**: Every artifact produced by the pipeline undergoes rigorous peer-review. 
-  - An **Actor** generates the output.
-  - A **Critic** reviews it.
-  - If the Critic finds flaws, it feeds the critique directly back into the Actor for a rewrite, automatically looping up to 3 times before either passing or safely aborting.
+- **Zero LangChain/Heavy Frameworks**: Built natively with the `ollama` Python package to keep things blazing fast and completely transparent, allowing us to focus entirely on the loop logic.
+- **Data-Driven Loops**: All LLM prompts, context injection rules, and loop orchestration are externalized to `config/agents.yaml`. This allows us to engineer new loop topologies purely through configuration.
+- **Current Implementation (Actor-Critic)**: As a proof-of-concept for loop engineering, the current default configuration utilizes an Actor-Critic architecture where artifacts are generated and peer-reviewed in a feedback loop. However, the framework itself is entirely loop-agnostic.
 
 ## The Pipeline Flow
 

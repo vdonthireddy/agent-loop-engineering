@@ -61,4 +61,13 @@ I realized that having six different Python files for the Actors and Critics was
 **Decision:** 
 We completely deleted the `agents/` folder and pivoted to a **Data-Driven Architecture**. We externalized all system prompts, user templates, and variables into a single `config/agents.yaml` file. We then created a tiny `engine.py` script that can dynamically instantiate and run *any* agent purely by reading the YAML file. This condensed the framework from over a dozen files down to just three core files!
 
+### Entry 6: Philosophical Alignment - Loop Engineering First
+**Date:** July 2, 2026, ~11:03 AM
+
+**Thought Process:** 
+I lost sight of the forest for the trees. I started treating the "Actor-Critic" architecture as the final goal of the project, framing the entire `README.md` around it. The user correctly pulled me back and reminded me that the primary focus of this framework is **Loop Engineering**—the actual science and tooling around designing, managing, and orchestrating arbitrary agentic loops.
+
+**Decision:** 
+We rewrote the documentation to accurately reflect this philosophy. The framework is a loop engineering laboratory. The Actor-Critic pipeline we built is merely *one* proof-of-concept configuration of a loop, not the defining feature of the framework. Going forward, all architectural decisions must serve the meta-goal of making loop design easier and more robust.
+
 *(To be continued...)*
