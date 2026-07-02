@@ -98,4 +98,15 @@ We are moving from an "In-Memory Global State" to a **File-System Backed Workspa
 
 This makes the framework infinitely more powerful and completely decoupled from hardcoded file names.
 
+### Entry 9: Test-Driven Development (TDD) Loop Strategy
+**Date:** July 2, 2026, ~12:07 PM
+
+**Thought Process:** 
+Using an LLM as a "Critic" to review code is useful for qualitative review (like docs or manifests), but for code, it's often overly pedantic or prone to hallucination (e.g., refusing to output 'PASS' despite perfect code). A true loop engineering framework should be able to execute code against a deterministic evaluator.
+
+**Decision:** 
+We built a `TDDStrategy` to plug into the `LoopFactory`. 
+Instead of an LLM Critic, the engine saves the Actor's generated code to the workspace and executes `pytest`. If the tests fail, the engine captures the stderr/stdout traceback and feeds it back into the Actor's prompt, creating a self-correcting TDD loop. We set the hyperparameter `max_retries` to 10. 
+This elevates the framework from a simple LLM wrapper into an autonomous, test-driven coding agent.
+
 *(To be continued...)*

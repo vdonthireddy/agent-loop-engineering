@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 from utils.llm import call_agent
 
 class WorkspaceState:
@@ -17,6 +18,9 @@ class WorkspaceState:
             content = ""
             for root, _, files in os.walk(key_dir):
                 for file in files:
+                    # Ignore __pycache__ and compiled files
+                    if "__pycache__" in root or file.endswith(".pyc"):
+                        continue
                     file_path = os.path.join(root, file)
                     with open(file_path, "r", encoding="utf-8") as f:
                         # Convert absolute path to relative for prompt context
@@ -69,11 +73,11 @@ class LoopStrategy:
         self.phase_name = phase_name
         self.config = phase_config
 
-    def execute(self, context):
+    def execute(self, context, state, output_key):
         raise NotImplementedError("Subclasses must implement execute()")
 
 class LinearStrategy(LoopStrategy):
-    def execute(self, context):
+    def execute(self, context, state, output_key):
         actor_config = self.config.get('actor')
         if not actor_config:
             raise ValueError(f"Actor configuration missing for {self.phase_name}")
@@ -88,9 +92,10 @@ class LinearStrategy(LoopStrategy):
         return call_agent(system_prompt, user_prompt)
 
 class ActorCriticStrategy(LoopStrategy):
-    def execute(self, context, max_retries=3):
+    def execute(self, context, state, output_key):
         actor_config = self.config.get('actor')
         critic_config = self.config.get('critic')
+        max_retries = self.config.get('max_retries', 3)
         
         if not actor_config or not critic_config:
             raise ValueError(f"Actor or Critic missing for {self.phase_name}")
@@ -135,6 +140,76 @@ class ActorCriticStrategy(LoopStrategy):
         print(">> Max retries exceeded. Critic did not approve.")
         return None
 
+class TDDStrategy(LoopStrategy):
+    def execute(self, context, state, output_key):
+        actor_config = self.config.get('actor')
+        max_retries = self.config.get('max_retries', 10)
+        
+        if not actor_config:
+            raise ValueError(f"Actor missing for {self.phase_name} TDD Strategy")
+            
+        feedback = None
+        for attempt in range(max_retries):
+            print(f"\n[Attempt {attempt+1}/{max_retries}] TDD Execution")
+            
+            system_prompt = actor_config['system_prompt']
+            feedback_prompt = ""
+            if feedback:
+                feedback_prompt = actor_config.get('feedback_prompt_template', '').format(feedback=feedback)
+                
+            user_prompt = actor_config['user_prompt_template'].format(
+                feedback_prompt=feedback_prompt,
+                **context
+            )
+            
+            print(f">>> Starting {self.phase_name.capitalize()} Actor")
+            actor_response = call_agent(system_prompt, user_prompt)
+            
+            # Immediately save the files to disk so pytest can run against them
+            extract = actor_config.get('extract_code', True)
+            state.set_files(output_key, actor_response, extract)
+            
+            # Ensure the code directory exists before putting it in PYTHONPATH
+            code_dir = os.path.abspath(os.path.join(state.root_dir, output_key))
+            os.makedirs(code_dir, exist_ok=True)
+            
+            # Execute Pytest against the tests directory. 
+            # We add workspace/code (the output_key) to the PYTHONPATH so tests can import the generated code.
+            print(f">>> Running Pytest Evaluator")
+            env = os.environ.copy()
+            env["PYTHONPATH"] = code_dir
+            tests_dir = os.path.abspath(os.path.join(state.root_dir, "tests"))
+            
+            try:
+                result = subprocess.run(
+                    ["python3", "-m", "pytest", tests_dir],
+                    capture_output=True,
+                    text=True,
+                    env=env,
+                    timeout=30 # 30 second timeout for infinite loops
+                )
+                
+                print(f"\n--- {self.phase_name.capitalize()} Pytest Output ---")
+                print(result.stdout)
+                if result.stderr:
+                    print("STDERR:")
+                    print(result.stderr)
+                print("----------------------------\n")
+                
+                if result.returncode == 0:
+                    print(">> TDD Tests Passed!")
+                    return actor_response
+                else:
+                    print(">> TDD Tests Failed. Capturing traceback for Actor...")
+                    feedback = f"Pytest Output:\n{result.stdout}\n{result.stderr}"
+                    
+            except subprocess.TimeoutExpired:
+                print(">> Pytest execution timed out. Providing feedback...")
+                feedback = "Pytest execution timed out. You might have an infinite loop."
+                
+        print(">> Max retries exceeded. TDD did not pass.")
+        return None
+
 class LoopFactory:
     @staticmethod
     def create(phase_name, phase_config):
@@ -143,6 +218,8 @@ class LoopFactory:
             return ActorCriticStrategy(phase_name, phase_config)
         elif strategy == 'linear':
             return LinearStrategy(phase_name, phase_config)
+        elif strategy == 'tdd':
+            return TDDStrategy(phase_name, phase_config)
         else:
             raise ValueError(f"Unknown loop strategy: {strategy}")
 
@@ -178,12 +255,15 @@ class AgentEngine:
                 raise ValueError(f"Phase {phase_name} is not defined in phases block.")
                 
             loop_strategy = LoopFactory.create(phase_name, phase_config)
-            artifact_response = loop_strategy.execute(context)
+            
+            # The strategy now handles saving if it needs to (like TDD)
+            artifact_response = loop_strategy.execute(context, self.state, output_key)
             
             if not artifact_response:
                 print(f"Pipeline aborted at Phase {phase_name.upper()}.")
                 return False
                 
+            # Final save if strategy didn't already
             if output_key:
                 extract = phase_config.get('actor', {}).get('extract_code', True)
                 self.state.set_files(output_key, artifact_response, extract)

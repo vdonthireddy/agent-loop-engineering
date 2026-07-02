@@ -55,7 +55,7 @@ phases:
         Review the tests.
 
   coder:
-    loop_strategy: "actor_critic"
+    loop_strategy: "tdd"
     actor:
       system_prompt: |
         You are an expert Coder Agent.
@@ -78,34 +78,11 @@ phases:
         ```
         {feedback_prompt}
       feedback_prompt_template: |
-        Previous attempt failed. Critic Feedback:
+        Previous attempt failed the unit tests. Here is the Pytest traceback and output:
         {feedback}
-        Please fix the code based on this feedback.
+        Please analyze the failure and provide the corrected code.
       extract_code: true
-
-    critic:
-      system_prompt: |
-        You are a Senior Code Critic Agent.
-        Review the provided implementation code against the specifications and unit tests.
-        Ensure it is syntactically correct and will pass the tests.
-        If the code is perfect, respond with only 'PASS'.
-        If it is flawed, provide a list of critiques and end your response with 'FAIL'.
-      user_prompt_template: |
-        Specifications:
-        {specs}
-        
-        Tests:
-        ```python
-        {tests}
-        ```
-        
-        Generated Artifact:
-        ```python
-        {artifact}
-        ```
-        
-        Review the code.
-
+      max_retries: 10
   deployer:
     loop_strategy: "actor_critic"
     actor:

@@ -1,8 +1,9 @@
 - `[x]` Implement DAG-Based Orchestration
 - `[x]` Transition to Multi-File Dynamic Workspace
-  - `[x]` Update project diary
-  - `[x]` Refactor `engine.py` (File-Backed `WorkspaceState`)
-  - `[x]` Update `config/agents.yaml` prompts
-  - `[x]` Refactor `main.py`
-- `[x]` Verify execution with 7B model
-- `[x]` Update walkthrough artifact
+- `[/]` Implement TDD Loop Strategy
+  - `[ ]` Update `project_diary.md`
+  - `[ ]` Refactor `engine.py` to support `TDDStrategy` (using pytest)
+  - `[ ]` Update `agents.yaml` to use TDD and 10 retries for coder
+  - `[ ]` Add `pytest` to `requirements.txt`
+- `[ ]` Verify TDD pipeline execution
+- `[ ]` Update walkthrough artifact
