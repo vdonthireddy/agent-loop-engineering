@@ -5,7 +5,7 @@ import yaml
 from engine import AgentEngine
 
 SPECS_DIR = "specs"
-DEPLOY_DIR = "deploy"
+WORKSPACE_DIR = "workspace"
 CONFIG_FILE = "config/agents.yaml"
 
 def read_specs(specs_dir):
@@ -50,27 +50,34 @@ def run_pipeline():
         
     print("\n==============================")
     print("Saving Deployment Artifacts")
-    os.makedirs(DEPLOY_DIR, exist_ok=True)
+    
+    code_dir = os.path.join(WORKSPACE_DIR, "code")
+    test_dir = os.path.join(WORKSPACE_DIR, "test")
+    deploy_dir = os.path.join(WORKSPACE_DIR, "deploy")
+    
+    os.makedirs(code_dir, exist_ok=True)
+    os.makedirs(test_dir, exist_ok=True)
+    os.makedirs(deploy_dir, exist_ok=True)
     
     code = engine.state.get("code")
     if code:
-        deploy_path = os.path.join(DEPLOY_DIR, "deployed_app.py")
-        with open(deploy_path, "w", encoding="utf-8") as f:
+        code_path = os.path.join(code_dir, "deployed_app.py")
+        with open(code_path, "w", encoding="utf-8") as f:
             f.write(code)
             
     manifest = engine.state.get("manifest")
     if manifest:
-        manifest_path = os.path.join(DEPLOY_DIR, "manifest.txt")
+        manifest_path = os.path.join(deploy_dir, "manifest.txt")
         with open(manifest_path, "w", encoding="utf-8") as f:
             f.write(manifest)
             
     tests = engine.state.get("tests")
     if tests:
-        test_path = os.path.join(DEPLOY_DIR, "test_app.py")
+        test_path = os.path.join(test_dir, "test_app.py")
         with open(test_path, "w", encoding="utf-8") as f:
             f.write(tests)
             
-    print(f"Deployment complete! Files saved to {DEPLOY_DIR}/")
+    print(f"Deployment complete! Files saved to {WORKSPACE_DIR}/")
 
 def main():
     parser = argparse.ArgumentParser(description="Loop Engineering Orchestrator")
