@@ -1,5 +1,19 @@
+workflow:
+  name: "TDD_Pipeline"
+  steps:
+    - phase: "tester"
+      inputs: ["specs"]
+      output_key: "tests"
+    - phase: "coder"
+      inputs: ["specs", "tests"]
+      output_key: "code"
+    - phase: "deployer"
+      inputs: ["code", "tests"]
+      output_key: "manifest"
+
 phases:
   tester:
+    loop_strategy: "actor_critic"
     actor:
       system_prompt: |
         You are an expert QA Tester Agent.
@@ -35,6 +49,7 @@ phases:
         Review the tests.
 
   coder:
+    loop_strategy: "actor_critic"
     actor:
       system_prompt: |
         You are an expert Coder Agent.
@@ -80,6 +95,7 @@ phases:
         Review the code.
 
   deployer:
+    loop_strategy: "actor_critic"
     actor:
       system_prompt: |
         You are a Deployer Agent.

@@ -1,6 +1,9 @@
+import os
+from dotenv import load_dotenv
 import ollama
 
-MODEL_NAME = "qwen2.5-coder:0.5b"
+load_dotenv()
+MODEL_NAME = os.getenv("MODEL_NAME", "qwen2.5-coder:0.5b")
 
 def call_agent(system_prompt, user_prompt):
     print(f"[*] Calling Agent (Model: {MODEL_NAME})...")

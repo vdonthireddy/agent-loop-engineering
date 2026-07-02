@@ -1,9 +1,7 @@
-- `[/]` Refactor to YAML-Driven Engine
-  - `[ ]` Create `config/agents.yaml`
-  - `[ ]` Create `engine.py`
-  - `[ ]` Update `requirements.txt` with PyYAML
-  - `[ ]` Refactor `main.py`
-  - `[ ]` Delete `agents/` folder
-  - `[ ]` Update `project_diary.md`
-- `[ ]` Test execution
-- `[ ]` Update walkthrough artifact
+- `[x]` Implement DAG-Based Orchestration
+  - `[x]` Update `config/agents.yaml` with workflow definitions
+  - `[x]` Refactor `engine.py` with Pluggable Loop Strategies
+  - `[x]` Refactor `main.py` to run dynamic state-based workflows
+  - `[x]` Add diary entry for DAG refactor
+- `[x]` Test dynamic workflow execution
+- `[x]` Update walkthrough artifact

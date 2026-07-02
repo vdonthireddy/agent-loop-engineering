@@ -38,56 +38,48 @@ def run_pipeline():
         print("No specifications found.")
         return
         
-    print("\n==============================")
-    print("2. Phase 1: Test Generation")
-    context_tester = {'specs': specs}
-    tests = engine.run_loop("tester", context_tester)
-    if not tests:
-        print("Pipeline aborted at Phase 1.")
-        return
-
-    print("\n==============================")
-    print("3. Phase 2: Code Implementation")
-    context_coder = {'specs': specs, 'tests': tests}
-    code = engine.run_loop("coder", context_coder)
-    if not code:
-        print("Pipeline aborted at Phase 2.")
+    # Inject initial state
+    engine.state.set("specs", specs)
+    
+    # Run dynamic workflow
+    success = engine.run_workflow()
+    
+    if not success:
+        print("\nWorkflow aborted.")
         return
         
     print("\n==============================")
-    print("4. Phase 3: Deployment Generation")
-    context_deployer = {'code': code, 'tests': tests}
-    manifest = engine.run_loop("deployer", context_deployer)
-    if not manifest:
-        print("Pipeline aborted at Phase 3.")
-        return
-        
-    print("\n==============================")
-    print("5. Finalizing Deployment")
+    print("Saving Deployment Artifacts")
     os.makedirs(DEPLOY_DIR, exist_ok=True)
     
-    deploy_path = os.path.join(DEPLOY_DIR, "deployed_app.py")
-    with open(deploy_path, "w", encoding="utf-8") as f:
-        f.write(code)
-    
-    manifest_path = os.path.join(DEPLOY_DIR, "manifest.txt")
-    with open(manifest_path, "w", encoding="utf-8") as f:
-        f.write(manifest)
-        
-    test_path = os.path.join(DEPLOY_DIR, "test_app.py")
-    with open(test_path, "w", encoding="utf-8") as f:
-        f.write(tests)
-        
+    code = engine.state.get("code")
+    if code:
+        deploy_path = os.path.join(DEPLOY_DIR, "deployed_app.py")
+        with open(deploy_path, "w", encoding="utf-8") as f:
+            f.write(code)
+            
+    manifest = engine.state.get("manifest")
+    if manifest:
+        manifest_path = os.path.join(DEPLOY_DIR, "manifest.txt")
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            f.write(manifest)
+            
+    tests = engine.state.get("tests")
+    if tests:
+        test_path = os.path.join(DEPLOY_DIR, "test_app.py")
+        with open(test_path, "w", encoding="utf-8") as f:
+            f.write(tests)
+            
     print(f"Deployment complete! Files saved to {DEPLOY_DIR}/")
 
 def main():
-    parser = argparse.ArgumentParser(description="Data-Driven Agent Orchestrator")
+    parser = argparse.ArgumentParser(description="Loop Engineering Orchestrator")
     parser.add_argument(
         "--agent", 
         type=str, 
         choices=["pipeline"],
         default="pipeline",
-        help="Run the full 'pipeline'."
+        help="Run the configured YAML workflow."
     )
     
     args = parser.parse_args()

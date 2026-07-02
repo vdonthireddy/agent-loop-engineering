@@ -70,4 +70,18 @@ I lost sight of the forest for the trees. I started treating the "Actor-Critic" 
 **Decision:** 
 We rewrote the documentation to accurately reflect this philosophy. The framework is a loop engineering laboratory. The Actor-Critic pipeline we built is merely *one* proof-of-concept configuration of a loop, not the defining feature of the framework. Going forward, all architectural decisions must serve the meta-goal of making loop design easier and more robust.
 
+### Entry 7: DAG-Based Orchestration Engine
+**Date:** July 2, 2026, ~11:17 AM
+
+**Thought Process:** 
+I realized that our previous refactor didn't go far enough. We externalized our prompts to a YAML file, but the orchestration logic (the loop) was still hardcoded in Python! `main.py` explicitly called `tester`, then `coder`, then `deployer` and manually wired the variables together. If you wanted to test a different sequence of loops or build a new agentic architecture, you would still have to rewrite Python code.
+
+**Decision:** 
+We built a **DAG (Directed Acyclic Graph) Engine**. 
+1. `config/agents.yaml` now has a `workflow` block that defines the exact execution sequence and maps the Inputs/Outputs.
+2. We created a `GlobalState` dictionary. Phases declare what keys they read from the state and what keys they write back.
+3. We introduced a `LoopFactory`. Now, every phase in the YAML can specify its `loop_strategy` (e.g., `linear`, `actor_critic`). This definitively proves that Actor-Critic is just one possible loop type in our laboratory, and we can seamlessly plug in new strategies.
+
+Our framework is now a true, no-code *Loop Engineering Playground*.
+
 *(To be continued...)*
