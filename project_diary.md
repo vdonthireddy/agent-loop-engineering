@@ -109,4 +109,15 @@ We built a `TDDStrategy` to plug into the `LoopFactory`.
 Instead of an LLM Critic, the engine saves the Actor's generated code to the workspace and executes `pytest`. If the tests fail, the engine captures the stderr/stdout traceback and feeds it back into the Actor's prompt, creating a self-correcting TDD loop. We set the hyperparameter `max_retries` to 10. 
 This elevates the framework from a simple LLM wrapper into an autonomous, test-driven coding agent.
 
+### Entry 10: TDD Loop Execution and Validation
+**Date:** July 2, 2026, ~12:27 PM
+
+**Thought Process:**
+After building the `TDDStrategy`, we needed to prove it worked in practice, handling an iterative code generation loop. Our first attempt failed because the LLM hallucinated markdown guides instead of tests when given too large of a prompt (`SPEC_FRAMEWORK.md`).
+
+**Decision:**
+We narrowed the scope to a simple `math.md` specification and made the Tester prompt strictly require the `test_*.py` filename prefix so Pytest could discover it. 
+We then tested the true flexibility of the loop by injecting a new feature (`subtract`) into the spec mid-development. The TDD execution loop kicked in: the Tester updated the test suite, the Coder implemented the new feature, and the engine executed `pytest` in a background subprocess, passing flawlessly on the first attempt (`3 passed`).
+The TDD execution loop is now fully autonomous and driven by real deterministic evaluation!
+
 *(To be continued...)*
