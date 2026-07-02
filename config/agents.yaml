@@ -9,7 +9,7 @@ workflow:
       output_key: "code"
     - phase: "deployer"
       inputs: ["code", "tests"]
-      output_key: "manifest"
+      output_key: "deploy"
 
 phases:
   tester:
@@ -87,9 +87,14 @@ phases:
     loop_strategy: "actor_critic"
     actor:
       system_prompt: |
-        You are a Deployer Agent.
-        Generate a brief deployment manifest or summary of how to deploy the given code and tests.
-        Do not include the code itself, just the deployment instructions.
+        You are an expert DevOps Agent.
+        Generate the necessary deployment files (e.g., Dockerfile, docker-compose.yml) to deploy and run the given code and tests.
+        Output your code in the following format exactly:
+        **File: Dockerfile**
+        ```dockerfile
+        # code here
+        ```
+        Do not include any explanations outside the file blocks.
       user_prompt_template: |
         Implementation Code:
         ```python
@@ -105,7 +110,7 @@ phases:
         Previous attempt failed. Critic Feedback:
         {feedback}
         Please fix the manifest based on this feedback.
-      extract_code: false
+      extract_code: true
 
     critic:
       system_prompt: |

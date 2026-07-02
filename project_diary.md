@@ -120,4 +120,18 @@ We narrowed the scope to a simple `math.md` specification and made the Tester pr
 We then tested the true flexibility of the loop by injecting a new feature (`subtract`) into the spec mid-development. The TDD execution loop kicked in: the Tester updated the test suite, the Coder implemented the new feature, and the engine executed `pytest` in a background subprocess, passing flawlessly on the first attempt (`3 passed`).
 The TDD execution loop is now fully autonomous and driven by real deterministic evaluation!
 
+### Entry 11: Multi-File Generation and DevOps Manifest Extraction
+**Date:** July 2, 2026, ~01:00 PM
+
+**Thought Process:**
+We needed to prove that the engine wasn't restricted to generating simple one-file scripts. A real agentic framework needs to be able to build interdependent modules. Furthermore, we needed to prove that the final phase of the DAG (the Deployer) could output functional Docker files to disk instead of just a text summary.
+
+**Decision:**
+1. We deleted the math spec and created `specs/task_manager.md` explicitly requiring three separate files (`models.py`, `storage.py`, `manager.py`).
+2. We updated the `deployer` phase in `agents.yaml` to set `extract_code: true` and explicitly prompted the DevOps Agent to write a `Dockerfile` and `docker-compose.yml`.
+3. The TDD loop succeeded! It wrote tests for all three modules, and the Coder generated the implementations. On attempt 4, the Coder self-corrected its relative import errors using the Pytest feedback.
+4. The Deployer phase then launched. After 3 rounds of critique from the DevOps Critic (who demanded proper production-ready configurations), the Actor generated a complete Dockerized environment in `workspace/deploy/`, including a Flask wrapper `app.py` to expose the generated logic!
+
+The Loop Engineering Framework is now complete, acting as a fully end-to-end pipeline from Markdown Specification -> Unit Tests -> Code -> Docker Deployment.
+
 *(To be continued...)*
