@@ -1,0 +1,9 @@
+- `[/]` Refactor to YAML-Driven Engine
+  - `[ ]` Create `config/agents.yaml`
+  - `[ ]` Create `engine.py`
+  - `[ ]` Update `requirements.txt` with PyYAML
+  - `[ ]` Refactor `main.py`
+  - `[ ]` Delete `agents/` folder
+  - `[ ]` Update `project_diary.md`
+- `[ ]` Test execution
+- `[ ]` Update walkthrough artifact

@@ -1,0 +1,64 @@
+# Agent Loop Engineering: Project Diary
+
+This document serves as a chronological diary of our ideas, thought processes, and architectural decisions as we build the generic agent loop framework.
+
+---
+
+### Entry 1: The Initial Idea
+**Date:** July 2, 2026, ~09:25 AM
+
+**Thought Process:** 
+I wanted to build a completely generic agent framework that reads specification documents from a `specs/` folder and writes the corresponding code. I explicitly wanted to avoid bulky frameworks like LangChain and use only the raw `ollama` Python SDK. The system needed three distinct agents:
+1. **Coder**: Reads specs and writes code.
+2. **Tester**: Tests the code.
+3. **Deployer**: Deploys the code.
+
+**Decision:** 
+We built a simple, monolithic orchestrator in `main.py` that passed data sequentially: Coder ➡️ Tester ➡️ Deployer. We used `qwen2.5-coder:0.5b` as the local model.
+
+---
+
+### Entry 2: Modularity & CLI
+**Date:** July 2, 2026, ~09:32 AM
+
+**Thought Process:** 
+The monolithic `main.py` was too rigid. I wanted the agents organized clearly into different folders, and I wanted a client that could invoke a specific agent on demand instead of always running the full pipeline.
+
+**Decision:** 
+We refactored the project. We moved the shared Ollama logic to `utils/llm.py` and gave each agent its own folder (`agents/coder/`, `agents/tester/`, `agents/deployer/`). We rewrote `main.py` to use `argparse` so we could run things like `python main.py --agent coder`.
+
+---
+
+### Entry 3: The TDD Dilemma
+**Date:** July 2, 2026, ~10:30 AM
+
+**Thought Process:** 
+I was stuck deciding the order of operations: Should the Tester write test cases for a feature *first* (requiring 100% coverage perfection), or should the Coder write the code and test in a loop until it's correct?
+
+**Decision:** 
+We discussed the trade-offs of Pure TDD vs Auto-Regressive Execution Loops. We decided that if a Tester writes tests first, it requires incredibly strict specs to avoid hallucinating the API surface. This led to the realization that we needed a safeguard to verify the tests themselves before the Coder sees them.
+
+---
+
+### Entry 4: The Universal Actor-Critic Pipeline
+**Date:** July 2, 2026, ~10:38 AM
+
+**Thought Process:** 
+To solve the problem of flawed tests, we conceptualized a "Critic Agent" whose sole job is to review the Tester's output. I then realized this was such a good idea that *all* agents (Coder, Tester, Deployer) should have their own dedicated Critic agents.
+
+**Decision:** 
+We completely overhauled the framework into a **Universal Actor-Critic Architecture**:
+- Every domain folder now contains an `actor.py` and a `critic.py`.
+- `main.py` was rewritten to use a generic `run_loop()` function. 
+- Now, whenever an Actor generates an artifact, its Critic reviews it. If the Critic finds flaws, it feeds the critique back to the Actor for a rewrite (looping up to 3 times) before the pipeline is allowed to advance to the next phase.
+
+### Entry 5: The Data-Driven Refactor
+**Date:** July 2, 2026, ~10:51 AM
+
+**Thought Process:** 
+I realized that having six different Python files for the Actors and Critics was a massive violation of the DRY (Don't Repeat Yourself) principle. Every single agent was essentially doing the exact same thing: formatting a string, calling the LLM, and occasionally running a regex to extract code. The framework wasn't truly generic yet.
+
+**Decision:** 
+We completely deleted the `agents/` folder and pivoted to a **Data-Driven Architecture**. We externalized all system prompts, user templates, and variables into a single `config/agents.yaml` file. We then created a tiny `engine.py` script that can dynamically instantiate and run *any* agent purely by reading the YAML file. This condensed the framework from over a dozen files down to just three core files!
+
+*(To be continued...)*

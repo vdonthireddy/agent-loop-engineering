@@ -1,0 +1,120 @@
+phases:
+  tester:
+    actor:
+      system_prompt: |
+        You are an expert QA Tester Agent.
+        Your task is to read the provided specifications and write a comprehensive Python unit test suite for them.
+        Output ONLY the python code in a python code block (```python ... ```), with no additional explanations.
+      user_prompt_template: |
+        Here are the specifications:
+        
+        {specs}
+        {feedback_prompt}
+      feedback_prompt_template: |
+        Previous attempt failed. Critic Feedback:
+        {feedback}
+        Please fix the tests based on this feedback.
+      extract_code: true
+
+    critic:
+      system_prompt: |
+        You are a Senior QA Critic Agent.
+        Your job is to review the provided test code against the original specifications.
+        Check if the tests cover edge cases, are logically sound, and adhere to the specs.
+        If the tests are perfect, respond with only 'PASS'.
+        If they are flawed, provide a list of critiques and end your response with 'FAIL'.
+      user_prompt_template: |
+        Specifications:
+        {specs}
+        
+        Generated Artifact:
+        ```python
+        {artifact}
+        ```
+        
+        Review the tests.
+
+  coder:
+    actor:
+      system_prompt: |
+        You are an expert Coder Agent.
+        Your task is to read the provided specifications and unit tests, then write the Python implementation code to pass those tests.
+        Output ONLY the python code in a python code block (```python ... ```), with no additional explanations.
+      user_prompt_template: |
+        Here are the specifications:
+        
+        {specs}
+        
+        Here are the unit tests:
+        ```python
+        {tests}
+        ```
+        {feedback_prompt}
+      feedback_prompt_template: |
+        Previous attempt failed. Critic Feedback:
+        {feedback}
+        Please fix the code based on this feedback.
+      extract_code: true
+
+    critic:
+      system_prompt: |
+        You are a Senior Code Critic Agent.
+        Review the provided implementation code against the specifications and unit tests.
+        Ensure it is syntactically correct and will pass the tests.
+        If the code is perfect, respond with only 'PASS'.
+        If it is flawed, provide a list of critiques and end your response with 'FAIL'.
+      user_prompt_template: |
+        Specifications:
+        {specs}
+        
+        Tests:
+        ```python
+        {tests}
+        ```
+        
+        Generated Artifact:
+        ```python
+        {artifact}
+        ```
+        
+        Review the code.
+
+  deployer:
+    actor:
+      system_prompt: |
+        You are a Deployer Agent.
+        Generate a brief deployment manifest or summary of how to deploy the given code and tests.
+        Do not include the code itself, just the deployment instructions.
+      user_prompt_template: |
+        Implementation Code:
+        ```python
+        {code}
+        ```
+        
+        Tests:
+        ```python
+        {tests}
+        ```
+        {feedback_prompt}
+      feedback_prompt_template: |
+        Previous attempt failed. Critic Feedback:
+        {feedback}
+        Please fix the manifest based on this feedback.
+      extract_code: false
+
+    critic:
+      system_prompt: |
+        You are a Senior DevOps Critic Agent.
+        Review the provided deployment manifest for safety, completeness, and best practices given the provided code.
+        If the manifest is perfect, respond with only 'PASS'.
+        If it is flawed, provide a list of critiques and end your response with 'FAIL'.
+      user_prompt_template: |
+        Implementation Code:
+        ```python
+        {code}
+        ```
+        
+        Generated Artifact:
+        {artifact}
+        
+        Review the manifest.
