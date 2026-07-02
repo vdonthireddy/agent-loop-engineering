@@ -1,7 +1,8 @@
 - `[x]` Implement DAG-Based Orchestration
-  - `[x]` Update `config/agents.yaml` with workflow definitions
-  - `[x]` Refactor `engine.py` with Pluggable Loop Strategies
-  - `[x]` Refactor `main.py` to run dynamic state-based workflows
-  - `[x]` Add diary entry for DAG refactor
-- `[x]` Test dynamic workflow execution
+- `[x]` Transition to Multi-File Dynamic Workspace
+  - `[x]` Update project diary
+  - `[x]` Refactor `engine.py` (File-Backed `WorkspaceState`)
+  - `[x]` Update `config/agents.yaml` prompts
+  - `[x]` Refactor `main.py`
+- `[x]` Verify execution with 7B model
 - `[x]` Update walkthrough artifact

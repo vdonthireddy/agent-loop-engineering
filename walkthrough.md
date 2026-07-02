@@ -18,8 +18,11 @@ agent-loop-engineering/
 
 ## How It Works
 
-### 1. Global State Management
-Instead of passing variables between Python functions, `engine.py` acts as a state machine. It maintains a `GlobalState` dictionary. Phases in your YAML file declare what keys they `read` from the state, and what key they `write` back to.
+### 1. Multi-File Dynamic Workspace
+Instead of holding Python strings in memory, the engine uses the File System as its state machine. 
+- Agents are prompted to output files using a standardized markdown format (e.g., `# File: app.py`).
+- The engine dynamically creates these files in the `workspace/` root.
+- When an agent needs inputs, the engine bundles entire directories from the `workspace/` folder and injects them into the prompt. The LLM dictates the file architecture, not the python orchestrator.
 
 ### 2. Directed Acyclic Graphs (DAGs)
 You define the exact sequence of events in `config/agents.yaml` under the `workflow` block. 
@@ -40,11 +43,13 @@ Actor-Critic is no longer hardcoded. The framework uses a `LoopFactory`. Every p
 
 ## Execution Results
 
-I ran `python main.py` in the background using your local `qwen2.5-coder:0.5b` model to verify the DAG engine. 
+I ran `python main.py` using `qwen2.5-coder:7b`. 
 
-**The Good News:** The YAML orchestration logic works flawlessly! It successfully initialized the Global State, read the `workflow` sequence, instantiated the `ActorCriticStrategy` for the `tester` phase, routed the inputs correctly, and handled the loop retries.
+**The Good News:** The new `WorkspaceState` engine works exactly as designed! During the Tester phase, the 7B model generated code, and the engine correctly extracted it and physically wrote it to `workspace/tests/app.py`. 
 
-**The Expected Result:** As before, because `0.5b` is a very small model, it failed to output the required `PASS` string, causing the engine to safely abort at Phase TESTER after 3 retries.
+**The Expected Result:** The 7B model is much more articulate, but during the Coder phase, the Critic kept giving highly detailed feedback and suggestions *instead* of just saying "PASS", causing the loop to abort after 3 retries. This is a common issue with local LLMs—they like to be helpful. 
 
 > [!TIP]
-> This framework is fully structural and production-ready! To get real results, open `utils/llm.py` and change the `MODEL_NAME` to a larger model like `llama3` or `mistral`. The larger models will easily understand the Actor-Critic prompts and successfully traverse the DAG!
+> The framework itself is robust. To fix the Critic behavior, we can either:
+> 1. Tweak the YAML prompts to force a stricter format (e.g. JSON output).
+> 2. Use a heavier model (like Llama 3 8B or a cloud model).

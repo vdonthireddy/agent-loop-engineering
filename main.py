@@ -39,7 +39,7 @@ def run_pipeline():
         return
         
     # Inject initial state
-    engine.state.set("specs", specs)
+    engine.state.set_memory("specs", specs)
     
     # Run dynamic workflow
     success = engine.run_workflow()
@@ -48,36 +48,8 @@ def run_pipeline():
         print("\nWorkflow aborted.")
         return
         
-    print("\n==============================")
-    print("Saving Deployment Artifacts")
-    
-    code_dir = os.path.join(WORKSPACE_DIR, "code")
-    test_dir = os.path.join(WORKSPACE_DIR, "test")
-    deploy_dir = os.path.join(WORKSPACE_DIR, "deploy")
-    
-    os.makedirs(code_dir, exist_ok=True)
-    os.makedirs(test_dir, exist_ok=True)
-    os.makedirs(deploy_dir, exist_ok=True)
-    
-    code = engine.state.get("code")
-    if code:
-        code_path = os.path.join(code_dir, "deployed_app.py")
-        with open(code_path, "w", encoding="utf-8") as f:
-            f.write(code)
-            
-    manifest = engine.state.get("manifest")
-    if manifest:
-        manifest_path = os.path.join(deploy_dir, "manifest.txt")
-        with open(manifest_path, "w", encoding="utf-8") as f:
-            f.write(manifest)
-            
-    tests = engine.state.get("tests")
-    if tests:
-        test_path = os.path.join(test_dir, "test_app.py")
-        with open(test_path, "w", encoding="utf-8") as f:
-            f.write(tests)
-            
-    print(f"Deployment complete! Files saved to {WORKSPACE_DIR}/")
+    print("\nWorkflow completed successfully!")
+    print(f"Artifacts have been dynamically saved to the {WORKSPACE_DIR}/ directory.")
 
 def main():
     parser = argparse.ArgumentParser(description="Loop Engineering Orchestrator")

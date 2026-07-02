@@ -17,8 +17,14 @@ phases:
     actor:
       system_prompt: |
         You are an expert QA Tester Agent.
-        Your task is to read the provided specifications and write a comprehensive Python unit test suite for them.
-        Output ONLY the python code in a python code block (```python ... ```), with no additional explanations.
+        Your task is to read the provided specifications and write comprehensive Python unit tests for them.
+        You may create one or multiple test files.
+        Output your code in the following format exactly:
+        **File: test_example.py**
+        ```python
+        # code here
+        ```
+        Do not include any explanations outside the file blocks.
       user_prompt_template: |
         Here are the specifications:
         
@@ -54,7 +60,13 @@ phases:
       system_prompt: |
         You are an expert Coder Agent.
         Your task is to read the provided specifications and unit tests, then write the Python implementation code to pass those tests.
-        Output ONLY the python code in a python code block (```python ... ```), with no additional explanations.
+        You may create one or multiple implementation files.
+        Output your code in the following format exactly:
+        **File: example.py**
+        ```python
+        # code here
+        ```
+        Do not include any explanations outside the file blocks.
       user_prompt_template: |
         Here are the specifications:
         

@@ -84,4 +84,18 @@ We built a **DAG (Directed Acyclic Graph) Engine**.
 
 Our framework is now a true, no-code *Loop Engineering Playground*.
 
+### Entry 8: Multi-File Dynamic Workspace (File-Backed State)
+**Date:** July 2, 2026, ~11:47 AM
+
+**Thought Process:** 
+We realized our orchestration engine had a severe limitation: it assumed an LLM only ever outputs a single string of code, and our Python orchestrator hardcoded that output into a single file (`deployed_app.py`). In a real agentic framework, an LLM might read 5 spec files and decide it needs to create 3 Python files and a database model. The LLM must control the file architecture.
+
+**Decision:** 
+We are moving from an "In-Memory Global State" to a **File-System Backed Workspace**. 
+1. The prompts in `agents.yaml` are being updated to instruct agents to use a standard markdown protocol for multi-file generation (e.g., `# File: db.py \n ```...```).
+2. The engine parses this output via Regex and dynamically writes the files to disk (e.g., `workspace/code/db.py`).
+3. When the next agent requests `inputs: ["code"]`, the engine physically scans the `workspace/code/` directory, bundles all the files it finds into a structured context window, and injects it. 
+
+This makes the framework infinitely more powerful and completely decoupled from hardcoded file names.
+
 *(To be continued...)*
