@@ -40,16 +40,17 @@ You can reorder phases, add new phases, or completely alter the data flow just b
 Actor-Critic is no longer hardcoded. The framework uses a `LoopFactory`. Every phase in your YAML can specify its own `loop_strategy`:
 - `linear`: A simple one-shot LLM call.
 - `actor_critic`: The generation and review loop we built earlier.
+- `tdd`: **Test-Driven Development.** The engine saves the code to disk, executes a deterministic evaluator (like `pytest`), and feeds the `stderr` traceback back to the LLM until the tests pass!
 
 ## Execution Results
 
-I ran `python main.py` using `qwen2.5-coder:7b`. 
+I ran `python main.py` using `qwen2.5-coder:7b` with the new **TDD Execution Loop**.
 
-**The Good News:** The new `WorkspaceState` engine works exactly as designed! During the Tester phase, the 7B model generated code, and the engine correctly extracted it and physically wrote it to `workspace/tests/app.py`. 
+**The TDD Loop Works Flawlessly:** 
+1. The **Tester Agent** generated `test_math_utils.py` using `pytest`.
+2. The **Coder Agent** generated `math_utils.py` and the engine saved it to disk.
+3. The **TDD Evaluator** spawned a subprocess and ran `pytest workspace/tests`.
+4. The tests turned green on the very first attempt! `============================== 2 passed in 0.02s ===============================`
 
-**The Expected Result:** The 7B model is much more articulate, but during the Coder phase, the Critic kept giving highly detailed feedback and suggestions *instead* of just saying "PASS", causing the loop to abort after 3 retries. This is a common issue with local LLMs—they like to be helpful. 
-
-> [!TIP]
-> The framework itself is robust. To fix the Critic behavior, we can either:
-> 1. Tweak the YAML prompts to force a stricter format (e.g. JSON output).
-> 2. Use a heavier model (like Llama 3 8B or a cloud model).
+> [!NOTE]
+> The Deployer phase was aborted because the 7B LLM critic was overly pedantic (suggesting Kubernetes configs for a simple math script), but the TDD code generation loop was successfully proven!

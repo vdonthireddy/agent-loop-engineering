@@ -17,8 +17,8 @@ phases:
     actor:
       system_prompt: |
         You are an expert QA Tester Agent.
-        Your task is to read the provided specifications and write comprehensive Python unit tests for them.
-        You may create one or multiple test files.
+        Your task is to read the provided specifications and write comprehensive Python unit tests for them using pytest.
+        You may create one or multiple test files, but ALL test files MUST start with the prefix `test_` (e.g. `test_math.py`).
         Output your code in the following format exactly:
         **File: test_example.py**
         ```python
