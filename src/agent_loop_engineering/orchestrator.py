@@ -44,11 +44,22 @@ def _parse_verdict(raw: str, key: str) -> dict | None:
     start = raw.find("{")
     end = raw.rfind("}")
     if start != -1 and end != -1 and end > start:
-        return try_parse(raw[start:end+1])
+        res_inner = try_parse(raw[start:end+1])
+        if res_inner is not None:
+            return res_inner
+
+    # Fallback: try to find the key via regex to understand intent
+    pattern = rf'[\"\*\']?{re.escape(key)}[\"\*\']?\s*[:=]\s*(true|false)'
+    match = re.search(pattern, raw, re.IGNORECASE)
+    if match:
+        is_true = match.group(1).lower() == 'true'
+        return {key: is_true, "issues": ["Regex fallback: no detailed issues extracted"] if not is_true else []}
         
     return None
 
-def _issue_key(issue: dict) -> str:
+def _issue_key(issue: dict | str) -> str:
+    if isinstance(issue, str):
+        return issue
     detail = issue.get("detail") or issue.get("description") or str(issue)
     return f"{issue.get('severity', '')}:{detail}"
 
@@ -59,10 +70,11 @@ def _remember_issues(seen: list[dict], current: list[dict]):
             seen.append(issue)
             keys.add(_issue_key(issue))
 
-def _blocking_issues(verdict: dict) -> list[dict]:
+def _blocking_issues(verdict: dict) -> list[dict | str]:
     if not verdict or "issues" not in verdict:
         return []
-    return [i for i in verdict["issues"] if str(i.get("severity", "")).lower() in ("high", "medium")]
+    issues = verdict["issues"]
+    return [i for i in issues if isinstance(i, str) or str(i.get("severity", "")).lower() in ("high", "medium")]
 
 def _has_blocking(verdict: dict) -> bool:
     return len(_blocking_issues(verdict)) > 0
@@ -225,6 +237,8 @@ class Orchestrator:
         if gate.generator:
             res = await self._run(ctx, gate.generator)
             self._log_agent(ctx.workspace, f"{gate.stage}: generator", res)
+            if gate.stage == "design" and not ctx.workspace.exists("design.md"):
+                self._recover_design_md(ctx.workspace, res)
 
         iterations = 0
         while iterations < gate.max_iterations:
@@ -266,6 +280,8 @@ class Orchestrator:
         if not self.config.design_review:
             res = await self._run(ctx, "architect")
             self._log_agent(ctx.workspace, "architect.design", res)
+            if not ctx.workspace.exists("design.md"):
+                self._recover_design_md(ctx.workspace, res)
             report.add_stage(StageReport(name="design", ok=True, files_touched=res.files_touched if res else []))
             return False
             
@@ -320,6 +336,9 @@ class Orchestrator:
     async def _design_loop(self, ctx: AgentContext, report: RunReport) -> bool:
         res = await self._run(ctx, "architect")
         self._log_agent(ctx.workspace, "architect.design", res)
+        if not ctx.workspace.exists("design.md"):
+            self._recover_design_md(ctx.workspace, res)
+
 
         if not self.agents.get("design_critic"):
             report.design_approved = True
@@ -513,6 +532,21 @@ class Orchestrator:
             try:
                 ws.write_file("smoke_check.sh", script)
                 self._log(ws, "smoke script recovered from agent's message")
+            except Exception:
+                pass
+
+    def _recover_design_md(self, ws: Workspace, result) -> None:
+        text = result.text or "" if result else ""
+        if not text:
+            return
+            
+        match = re.search(r"```markdown\n(.*?)```", text, flags=re.DOTALL | re.IGNORECASE)
+        content = match.group(1).strip() if match else text.strip()
+        
+        if content:
+            try:
+                ws.write_file("design.md", content)
+                self._log(ws, "design.md recovered from agent's message")
             except Exception:
                 pass
 
