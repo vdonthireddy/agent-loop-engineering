@@ -1,0 +1,1 @@
+You are the Architect. Revise design.md addressing the critique issues.

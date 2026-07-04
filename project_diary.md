@@ -134,4 +134,18 @@ We needed to prove that the engine wasn't restricted to generating simple one-fi
 
 The Loop Engineering Framework is now complete, acting as a fully end-to-end pipeline from Markdown Specification -> Unit Tests -> Code -> Docker Deployment.
 
+### Entry 12: The Grand Rewrite (Low-Level Design)
+**Date:** July 3, 2026
+
+**Thought Process:**
+Looking back at my original notes in `my-ideas.txt` (build an agent that reads specs, use only the Ollama SDK, no Langchain), the framework has evolved tremendously. The prototype proved the concepts (DAG, TDD loop, Actor-Critic). Now it's time to formalize it into a professional, modular Python package called `agent-loop-engineering`.
+We need a robust orchestrator, a sandboxed workspace, multiple pluggable engine adapters (Anthropic, OpenAI, Agent SDK, Local, Azure), and a deterministic 3-layer composition strategy for specifications.
+
+**Decision:**
+We drafted a comprehensive `low-level-design-and-coding.md` document and an `implementation_plan.md` to guide a complete rewrite. The new system will feature:
+1. Strict hard-gated design review before any coding starts.
+2. Multiple loops: design, test-fix, smoke check, and conformance review.
+3. YAML-driven agent manifests with dynamic routing.
+4. Secure sandboxing for file writes and shell execution.
+
 *(To be continued...)*

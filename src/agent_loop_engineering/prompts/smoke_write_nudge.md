@@ -1,0 +1,1 @@
+You must output a shell script named smoke_check.sh to the workspace using your file write tool. Do not just print it.

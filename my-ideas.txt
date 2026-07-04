@@ -1,5 +1,0 @@
-Build a project that uses the specs folder and ask an agent to write code accordingly. 
-So, basically this agent should read the specs folder and write code.
-You need to build the agent and also the client that calls the agent
-no langchain like libraries.
-use only ollama sdk

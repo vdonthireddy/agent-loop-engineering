@@ -1,0 +1,61 @@
+agents:
+  architect:
+    prompt: architect
+    task: "Derive the technical design for the following specification:\n\n${spec}\n${global}"
+  architect:revise:
+    role: architect
+    prompt: architect_revise
+    task: "Revise your technical design based on the following critique issues. Do NOT lose existing valid design.\n\nIssues:\n${issues}\n\nHistory:\n${history}\n${global}"
+  design_critic:
+    prompt: design_review
+    task: "Review the technical design against the original BRD/Spec.\n\nOriginal Spec:\n${spec}\n${global}"
+  coder:
+    prompt: coder
+    task: "Implement the approved design EXACTLY. Write source code and manifests."
+  tester:
+    prompt: tester_write
+    task: "Write a thorough test suite. Use ${test_command}."
+  coder:fix:
+    role: coder
+    prompt: coder_fix
+    task: "The tests failed. Fix the source code. \nError Output:\n${test_output}"
+  smoke:
+    prompt: smoke
+    task: "Write a smoke_check.sh script that starts the app and proves it runs."
+  deployer:
+    prompt: deployer
+    task: "Produce a deploy artifact (e.g. Dockerfile) and DEPLOY.md."
+  conformance:
+    prompt: conformance_review
+    task: "Review the implemented project for conformance against the ORIGINAL SPEC:\n\n${spec}"
+  conformance:fix:
+    role: conformance
+    prompt: conformance_fix
+    task: "Fix the conformance issues found:\n\n${issues}"
+  test_critic:
+    prompt: test_review
+    task: "Review the test suite against the original Spec. Output test_review.json with 'adequate' boolean and 'issues'."
+  tester:revise:
+    role: tester
+    prompt: tester_revise
+    task: "Revise your test suite based on the following critique issues. Do NOT lose existing valid tests.\n\nIssues:\n${issues}\n\nHistory:\n${history}\n${global}"
+
+gates:
+  - stage: design
+    placement: pre_code
+    generator: architect
+    critic: design_critic
+    reviser: architect:revise
+    verdict_file: design_review.json
+    verdict_key: approved
+    max_iterations: 3
+    blocking: true
+  - stage: conformance
+    placement: post_deploy
+    generator: null
+    critic: conformance
+    reviser: conformance:fix
+    verdict_file: conformance.json
+    verdict_key: conformant
+    max_iterations: 2
+    blocking: false

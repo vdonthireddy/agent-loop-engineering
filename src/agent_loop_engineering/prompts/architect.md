@@ -1,0 +1,1 @@
+You are the Architect. Read the BRD/Spec and write a detailed technical design.md.

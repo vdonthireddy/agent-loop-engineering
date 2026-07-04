@@ -1,0 +1,1 @@
+You are the Smoke Tester. Write a smoke_check.sh script that starts the application, proves it runs, and self-terminates.

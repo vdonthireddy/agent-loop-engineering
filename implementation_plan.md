@@ -1,35 +1,27 @@
-# Implementation Plan: Test-Driven Development (TDD) Loop
+# Verification Plan
 
-## Goal
-Introduce a true Test-Driven Development (TDD) loop strategy where the generated code is actually executed against the unit tests using `pytest`. If the tests fail, the error trace is fed back to the LLM to update the code, looping up to a specified maximum (e.g., 10 times).
+I am conducting a highly detailed cross-reference between my implementation and `low-level-design-and-coding.md`. 
 
-## Background
-Currently, our `actor_critic` strategy uses another LLM (the Critic) to statically review the code. While useful, it is prone to hallucination or being overly pedantic (as we saw when it refused to just output "PASS"). A true TDD loop runs actual deterministic tests to evaluate success.
+## Discrepancies Found
 
-## Proposed Changes
+### 1. `RunReport.ok` and Stage Appending
+- **LLD**: `RunReport.ok` is strictly defined as `all(stage.ok) and tests_passed and conformant is not False and design_approved is not False and smoke_passed is not False`. 
+- **My Code**: I changed this to ignore `stage.ok` because I was appending failing stages for every intermediate iteration of the test, smoke, and design loops.
+- **Fix**: Revert `RunReport.ok` to strictly check `all(stage.ok)`. Update the Orchestrator's loops (`_design_loop`, `_test_loop`, `_smoke_loop`, `_conformance_loop`) to only append **a single StageReport** at the end of the loop, representing the final outcome (as specified in Section 4.1). 
 
-### 1. `TDDStrategy` in `engine.py`
-I will add a new `TDDStrategy` class to the `LoopFactory`.
-- It will execute the Actor LLM to generate the implementation code.
-- It will write the code to the workspace immediately so it can be tested.
-- It will spawn a subprocess to run `python3 -m pytest workspace/tests` (or similar).
-- If the exit code is `0` (Success), the loop breaks and the phase is complete!
-- If the exit code is non-zero (Failure), it will capture the `stderr`/`stdout` trace and inject it as `feedback` back into the Actor LLM for the next attempt.
+### 2. `_agent_ctx` Config Overrides
+- **LLD**: The orchestrator's `_agent_ctx(base_ctx, role)` builds a per-agent `AgentContext` with a `dataclasses.replace` config containing the role's model/effort (Section 4.1: "The orchestrator loads the registry... scope to the action's role (per-agent model via `_agent_ctx`)").
+- **My Code**: My `_agent_ctx` is currently a stub that just returns `base_ctx`.
+- **Fix**: Implement `config.role_engine_model_effort(role)` in `AppConfig` and use it in `_agent_ctx` to correctly inject role-specific engine/model/effort overrides.
 
-### 2. Strategy Signature Update
-To allow the `TDDStrategy` to evaluate files on disk, I will update the `LoopStrategy.execute()` signature to pass the `WorkspaceState` and the `output_key` so the strategy can save files mid-loop before evaluating them.
+### 3. Missing `tests/` details in `_test_loop`?
+- **LLD**: "tester -> write_tests(ctx) -> writes tests/"
+- **My Code**: In `_test_loop`, I just run the tester agent. The actual file writing is done by the engine. But I should verify the exact StageReport names.
+- **Fix**: Ensure the `tester` StageReport matches the LLD: "append a `tester` stage whose detail includes the final exit code and the last 1500 chars of output".
 
-### 3. Update `agents.yaml`
-- The `coder` phase will be updated to use `loop_strategy: "tdd"`.
-- The `critic` block will be removed from the `coder` phase, as `pytest` is now the critic.
-- A `max_retries` hyperparameter will be added to the `coder` phase (set to 10).
-- The `feedback_prompt_template` will be updated to instruct the LLM on how to read python traceback errors.
+### 4. `_critique_gate` Return value
+- **LLD**: "halt = await _critique_gate(...)". 
+- **My Code**: `_critique_gate` returns `True` if exhausted/rejected, and `False` if approved.
+- **Fix**: Verify this matches exactly.
 
-## Verification
-We will run `python main.py` again. We should see the engine physically running tests, capturing failures, and the LLM iteratively fixing its code until the tests pass green.
-
-## User Review Required
-> [!IMPORTANT]
-> The `TDDStrategy` requires executing code on your local machine using a subprocess. Are you comfortable with the framework running `pytest` locally on the LLM-generated code?
-> 
-> If you approve of this TDD loop design, hit Proceed!
+I will proceed to fix these strict LLD violations in a moment. Are there any other specific sections you want me to scrutinize before I begin the fixes?

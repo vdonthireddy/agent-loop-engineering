@@ -1,9 +1,11 @@
-- `[x]` Implement DAG-Based Orchestration
-- `[x]` Transition to Multi-File Dynamic Workspace
-- `[x]` Implement TDD Loop Strategy
-  - `[x]` Update `project_diary.md`
-  - `[x]` Refactor `engine.py` to support `TDDStrategy` (using pytest)
-  - `[x]` Update `agents.yaml` to use TDD and 10 retries for coder
-  - `[x]` Add `pytest` to `requirements.txt`
-- `[x]` Verify TDD pipeline execution
-- `[x]` Update walkthrough artifact
+- `[x]` Define `_STAGE_NAMES = ["design", "code", "test", "smoke", "deploy", "conformance"]` in `orchestrator.py`.
+- `[x]` Refactor `Orchestrator.build()` to iterate over `_STAGE_NAMES`.
+- `[x]` Implement `_run_gates(placement, ctx, report)`.
+- `[x]` Implement `_critique_gate(gate, ctx, report)`.
+- `[x]` Implement `_stage_design(ctx, report)`.
+- `[x]` Implement `_stage_code(ctx, report)`.
+- `[x]` Implement `_stage_test(ctx, report)` and `_test_review_loop(ctx, report)`.
+- `[x]` Implement `_stage_smoke(ctx, report)`.
+- `[x]` Implement `_stage_deploy(ctx, report)`.
+- `[x]` Implement `_stage_conformance(ctx, report)`.
+- `[x]` Ensure test suite passes.
