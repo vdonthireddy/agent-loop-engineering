@@ -53,17 +53,19 @@ def build_options(func):
         click.option("--max-iterations", type=int, help="Max test-fix loops"),
         click.option("--max-design-iterations", type=int, help="Max design revise cycles"),
         click.option("--max-smoke-iterations", type=int, help="Max smoke fix cycles"),
+        click.option("--max-test-review-iterations", type=int, help="Max test-review revise cycles"),
         click.option("--max-conformance-iterations", type=int, help="Max conformance fix cycles"),
         click.option("--language", help="Target language"),
         click.option("--test-command", help="Test runner command"),
         click.option("--design-review/--no-design-review", default=None, help="Run design gate"),
+        click.option("--test-review/--no-test-review", default=None, help="Run test review loop"),
         click.option("--smoke-run/--no-smoke-run", default=None, help="Run smoke test"),
         click.option("--conformance/--no-conformance", default=None, help="Run conformance stage"),
         click.option("--verbose", is_flag=True, default=None, help="Write detailed transcript"),
         click.option("--dry-run", is_flag=True, default=None, help="Print plan but don't run LLM"),
         click.option("--debug", is_flag=True, default=None, help="Re-raise exceptions"),
         click.option("--strict-gate", is_flag=True, default=None, help="Strict unparseable gate"),
-        click.option("--stop-after", type=click.Choice(["design", "code", "smoke", "deploy", "conformance"]), help="Stop early"),
+        click.option("--stop-after", type=click.Choice(["design", "code", "test", "smoke", "deploy", "conformance"]), help="Stop early"),
         click.option("--config-dir", default=".", help="Dir for .agentloop.toml"),
         click.option("--project-profile", help="Project config profile"),
     ]
@@ -93,8 +95,10 @@ def _resolve_config(opts, *, language=None, test_command=None):
         "max_iterations": opts.get("max_iterations"),
         "max_design_iterations": opts.get("max_design_iterations"),
         "max_smoke_iterations": opts.get("max_smoke_iterations"),
+        "max_test_review_iterations": opts.get("max_test_review_iterations"),
         "max_conformance_iterations": opts.get("max_conformance_iterations"),
         "design_review": opts.get("design_review"),
+        "test_review": opts.get("test_review"),
         "smoke_run": opts.get("smoke_run"),
         "conformance": opts.get("conformance"),
         "verbose": opts.get("verbose"),
@@ -139,6 +143,9 @@ def _print_config(spec, config, out_dir):
     
     s_run = f"on (max {config.max_smoke_iterations} fix cycles)" if config.smoke_run else "off"
     console.print(f"Smoke Run: [magenta]{s_run}[/magenta]")
+    
+    t_rev = f"on (max {config.max_test_review_iterations} cycles)" if config.test_review else "off"
+    console.print(f"Test Review: [magenta]{t_rev}[/magenta]")
     
     c_rev = f"on (max {config.max_conformance_iterations} fix cycles)" if config.conformance else "off"
     console.print(f"Conformance: [magenta]{c_rev}[/magenta]")

@@ -19,8 +19,6 @@ def e2e_config():
         max_design_iterations=3,
         smoke_run=False,
         max_smoke_iterations=2,
-        test_review=False,
-        max_test_review_iterations=2,
         conformance=True,
         max_conformance_iterations=2,
         strict_gate=False,

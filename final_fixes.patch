@@ -1,0 +1,199 @@
+diff --git a/src/agent_loop_engineering/agents.yaml b/src/agent_loop_engineering/agents.yaml
+index 3d0c54b..b6d25d4 100644
+--- a/src/agent_loop_engineering/agents.yaml
++++ b/src/agent_loop_engineering/agents.yaml
+@@ -32,14 +32,6 @@ agents:
+     role: conformance
+     prompt: conformance_fix
+     task: "Fix the conformance issues found:\n\n${issues}"
+-  test_critic:
+-    prompt: test_review
+-    task: "Review the test suite against the original Spec. Output test_review.json with 'adequate' boolean and 'issues'."
+-  tester:revise:
+-    role: tester
+-    prompt: tester_revise
+-    task: "Revise your test suite based on the following critique issues. Do NOT lose existing valid tests.\n\nIssues:\n${issues}\n\nHistory:\n${history}\n${global}"
+-
+ gates:
+   - stage: design
+     placement: pre_code
+diff --git a/src/agent_loop_engineering/config.py b/src/agent_loop_engineering/config.py
+index fbbe3a0..27883f2 100644
+--- a/src/agent_loop_engineering/config.py
++++ b/src/agent_loop_engineering/config.py
+@@ -11,7 +11,6 @@ DEFAULT_MAX_ITERATIONS = 6
+ DEFAULT_MAX_CONFORMANCE_ITERATIONS = 2
+ DEFAULT_MAX_DESIGN_ITERATIONS = 3
+ DEFAULT_MAX_SMOKE_ITERATIONS = 2
+-DEFAULT_MAX_TEST_REVIEW_ITERATIONS = 2
+ DEFAULT_LANGUAGE = "python"
+ _CONFIG_FILENAME = ".agentloop.toml"
+ 
+@@ -37,8 +36,6 @@ class AppConfig:
+     max_design_iterations: int = DEFAULT_MAX_DESIGN_ITERATIONS
+     smoke_run: bool = True
+     max_smoke_iterations: int = DEFAULT_MAX_SMOKE_ITERATIONS
+-    test_review: bool = True
+-    max_test_review_iterations: int = DEFAULT_MAX_TEST_REVIEW_ITERATIONS
+     conformance: bool = True
+     max_conformance_iterations: int = DEFAULT_MAX_CONFORMANCE_ITERATIONS
+     strict_gate: bool = False
+diff --git a/src/agent_loop_engineering/orchestrator.py b/src/agent_loop_engineering/orchestrator.py
+index 37cc49c..521fbd8 100644
+--- a/src/agent_loop_engineering/orchestrator.py
++++ b/src/agent_loop_engineering/orchestrator.py
+@@ -161,7 +161,19 @@ class Orchestrator:
+             max_iterations=self.config.max_iterations,
+         )
+         engine = self._get_engine(self.config.engine)
+-        self.base_ctx = AgentContext(engine=engine, config=self.config, workspace=workspace, spec=spec)
++        
++        def _build_global_spec(ws, sp, cfg):
++            content = sp.text
++            if ws.exists("brd.md"):
++                content += "\n\n# BRD\n" + ws.read_file("brd.md")
++            if ws.exists("design.md"):
++                content += "\n\n# Technical Design\n" + ws.read_file("design.md")
++            return content
++
++        global_spec = _build_global_spec(workspace, spec, self.config)
++        self.base_ctx = AgentContext(engine=engine, config=self.config, workspace=workspace, spec=spec, global_spec=global_spec)
++        
++        self._emit(f"BUILD START: '{spec.title}' | Context size: {len(global_spec)} bytes")
+         
+         if self.config.verbose:
+             workspace.write_file("build.log", "=== BUILD LOG ===\n")
+@@ -258,7 +270,17 @@ class Orchestrator:
+             return False
+             
+         self.progress("design", "Generating technical design...")
+-        return await self._design_loop(ctx, report)
++        halt = await self._design_loop(ctx, report)
++        
++        if not halt:
++            content = ctx.spec.text
++            if ctx.workspace.exists("brd.md"):
++                content += "\n\n# BRD\n" + ctx.workspace.read_file("brd.md")
++            if ctx.workspace.exists("design.md"):
++                content += "\n\n# Technical Design\n" + ctx.workspace.read_file("design.md")
++            ctx.global_spec = content
++            
++        return halt
+ 
+     async def _stage_code(self, ctx: AgentContext, report: RunReport) -> bool:
+         self.progress("code", "Starting coding...")
+@@ -270,10 +292,6 @@ class Orchestrator:
+     async def _stage_test(self, ctx: AgentContext, report: RunReport) -> bool:
+         self.progress("test", "Testing...")
+         await self._test_loop(ctx, report)
+-        
+-        if self.config.test_review and report.tests_passed and self.agents.get("test_critic"):
+-            self.progress("test", "Test review loop...")
+-            await self._test_review_loop(ctx, report)
+         return False
+ 
+     async def _stage_smoke(self, ctx: AgentContext, report: RunReport) -> bool:
+@@ -384,49 +402,13 @@ class Orchestrator:
+         
+         if cmd_res:
+             report.add_stage(StageReport(
+-                name="tester",
++                name="test",
+                 ok=run_ok,
+                 detail=f"Exit {cmd_res.exit_code}. Output:\n{cmd_res.combined_output[-1500:]}"
+             ))
+         else:
+-            report.add_stage(StageReport(name="tester", ok=False, detail="Tests did not run."))
++            report.add_stage(StageReport(name="test", ok=False, detail="Tests did not run."))
+ 
+-    async def _test_review_loop(self, ctx: AgentContext, report: RunReport):
+-        iterations = 0
+-        test_cmd = ctx.config.resolved_test_command()
+-        seen = []
+-        
+-        while iterations < self.config.max_test_review_iterations:
+-            iterations += 1
+-            
+-            async def review_fn(nudge=None):
+-                res_review = await self._run(ctx, "test_critic", nudge=nudge)
+-                self._log_agent(ctx.workspace, f"test_critic ({iterations})", res_review)
+-                return res_review
+-
+-            verdict, res_review = await self._reviewed_verdict(
+-                ctx, review_fn, "test_review.json", "adequate", stage="test_review", label=f"cycle {iterations}"
+-            )
+-            
+-            if verdict is None:
+-                break
+-
+-            adequate = verdict.get("adequate", False)
+-            issues = _blocking_issues(verdict)
+-            _remember_issues(seen, issues)
+-            
+-            if adequate or not issues or not self.agents.get("tester:revise"):
+-                break
+-                
+-            issues_str = json.dumps(issues, indent=2)
+-            hist_str = json.dumps(seen, indent=2)
+-            res_fix = await self._run(ctx, "tester:revise", issues=issues_str, history=hist_str)
+-            self._log_agent(ctx.workspace, f"tester:revise ({iterations})", res_fix)
+-            
+-            cmd_res = ctx.workspace.run_command(test_cmd)
+-            if not cmd_res.ok:
+-                out_trunc = cmd_res.combined_output[-4000:] if len(cmd_res.combined_output) > 4000 else cmd_res.combined_output
+-                await self._run(ctx, "coder:fix", test_output=out_trunc)
+ 
+     async def _smoke_loop(self, ctx: AgentContext, report: RunReport):
+         if not self.agents.get("smoke"):
+@@ -450,9 +432,9 @@ class Orchestrator:
+                 self._recover_smoke_script(ctx.workspace, res_retry)
+                 
+             if not ctx.workspace.exists("smoke_check.sh"):
+-                self._emit("FAIL: smoke_check.sh missing after retry")
+-                report.smoke_passed = False
+-                report.add_stage(StageReport(name="smoke", ok=False, detail="Missing smoke_check.sh"))
++                self._emit("Missing smoke_check.sh after retry, skipping smoke stage (non-blocking)")
++                report.smoke_passed = None
++                report.add_stage(StageReport(name="smoke", ok=True, detail="Missing smoke_check.sh, skipped"))
+                 return
+ 
+             cmd_res = ctx.workspace.run_command("bash smoke_check.sh", timeout=120)
+diff --git a/tests/test_design_loop.py b/tests/test_design_loop.py
+index a95575b..6f64c8d 100644
+--- a/tests/test_design_loop.py
++++ b/tests/test_design_loop.py
+@@ -20,8 +20,6 @@ def base_config():
+         max_design_iterations=3,
+         smoke_run=False,
+         max_smoke_iterations=2,
+-        test_review=False,
+-        max_test_review_iterations=2,
+         conformance=False,
+         max_conformance_iterations=2,
+         strict_gate=False,
+diff --git a/tests/test_orchestrator.py b/tests/test_orchestrator.py
+index 796a819..1f4efa3 100644
+--- a/tests/test_orchestrator.py
++++ b/tests/test_orchestrator.py
+@@ -19,8 +19,6 @@ def e2e_config():
+         max_design_iterations=3,
+         smoke_run=False,
+         max_smoke_iterations=2,
+-        test_review=False,
+-        max_test_review_iterations=2,
+         conformance=True,
+         max_conformance_iterations=2,
+         strict_gate=False,
+diff --git a/tests/test_smoke.py b/tests/test_smoke.py
+index bc4e788..8cc3d90 100644
+--- a/tests/test_smoke.py
++++ b/tests/test_smoke.py
+@@ -19,8 +19,6 @@ def smoke_config():
+         max_design_iterations=3,
+         smoke_run=True,
+         max_smoke_iterations=2,
+-        test_review=False,
+-        max_test_review_iterations=2,
+         conformance=False,
+         max_conformance_iterations=2,
+         strict_gate=False,

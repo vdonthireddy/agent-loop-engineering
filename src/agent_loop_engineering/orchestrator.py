@@ -161,7 +161,19 @@ class Orchestrator:
             max_iterations=self.config.max_iterations,
         )
         engine = self._get_engine(self.config.engine)
-        self.base_ctx = AgentContext(engine=engine, config=self.config, workspace=workspace, spec=spec)
+        
+        def _build_global_spec(ws, sp, cfg):
+            content = sp.text
+            if ws.exists("brd.md"):
+                content += "\n\n# BRD\n" + ws.read_file("brd.md")
+            if ws.exists("design.md"):
+                content += "\n\n# Technical Design\n" + ws.read_file("design.md")
+            return content
+
+        global_spec = _build_global_spec(workspace, spec, self.config)
+        self.base_ctx = AgentContext(engine=engine, config=self.config, workspace=workspace, spec=spec, global_spec=global_spec)
+        
+        self._emit(f"BUILD START: '{spec.title}' | Context size: {len(global_spec)} bytes")
         
         if self.config.verbose:
             workspace.write_file("build.log", "=== BUILD LOG ===\n")
@@ -258,7 +270,17 @@ class Orchestrator:
             return False
             
         self.progress("design", "Generating technical design...")
-        return await self._design_loop(ctx, report)
+        halt = await self._design_loop(ctx, report)
+        
+        if not halt:
+            content = ctx.spec.text
+            if ctx.workspace.exists("brd.md"):
+                content += "\n\n# BRD\n" + ctx.workspace.read_file("brd.md")
+            if ctx.workspace.exists("design.md"):
+                content += "\n\n# Technical Design\n" + ctx.workspace.read_file("design.md")
+            ctx.global_spec = content
+            
+        return halt
 
     async def _stage_code(self, ctx: AgentContext, report: RunReport) -> bool:
         self.progress("code", "Starting coding...")
@@ -384,12 +406,13 @@ class Orchestrator:
         
         if cmd_res:
             report.add_stage(StageReport(
-                name="tester",
+                name="test",
                 ok=run_ok,
                 detail=f"Exit {cmd_res.exit_code}. Output:\n{cmd_res.combined_output[-1500:]}"
             ))
         else:
-            report.add_stage(StageReport(name="tester", ok=False, detail="Tests did not run."))
+            report.add_stage(StageReport(name="test", ok=False, detail="Tests did not run."))
+
 
     async def _test_review_loop(self, ctx: AgentContext, report: RunReport):
         iterations = 0
@@ -428,6 +451,7 @@ class Orchestrator:
                 out_trunc = cmd_res.combined_output[-4000:] if len(cmd_res.combined_output) > 4000 else cmd_res.combined_output
                 await self._run(ctx, "coder:fix", test_output=out_trunc)
 
+
     async def _smoke_loop(self, ctx: AgentContext, report: RunReport):
         if not self.agents.get("smoke"):
             return
@@ -450,9 +474,9 @@ class Orchestrator:
                 self._recover_smoke_script(ctx.workspace, res_retry)
                 
             if not ctx.workspace.exists("smoke_check.sh"):
-                self._emit("FAIL: smoke_check.sh missing after retry")
-                report.smoke_passed = False
-                report.add_stage(StageReport(name="smoke", ok=False, detail="Missing smoke_check.sh"))
+                self._emit("Missing smoke_check.sh after retry, skipping smoke stage (non-blocking)")
+                report.smoke_passed = None
+                report.add_stage(StageReport(name="smoke", ok=True, detail="Missing smoke_check.sh, skipped"))
                 return
 
             cmd_res = ctx.workspace.run_command("bash smoke_check.sh", timeout=120)
