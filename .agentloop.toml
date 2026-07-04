@@ -1,0 +1,23 @@
+[agentloop]
+engine = "claude_api"
+model = "claude-opus-4-8"
+effort = "xhigh"
+language = "python"
+max_iterations = 6
+design_review = true
+smoke_run = true
+test_review = true
+conformance = true
+
+[agentloop.engines.local]
+base_url = "http://localhost:11434/v1"
+model = "qwen2.5-coder:7b"
+
+[agentloop.engines.openai]
+model = "gpt-4o"
+
+[agentloop.roles.architect]
+effort = "xhigh"
+
+[agentloop.roles.coder]
+effort = "high"
